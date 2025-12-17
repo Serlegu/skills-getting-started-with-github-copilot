@@ -20,14 +20,43 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
+          const participantsList = details.participants.length > 0 
+            ? `<ul class="participants-list">${details.participants.map(p => `<li class="participant-item">${p} <button class="delete-participant" data-activity="${encodeURIComponent(name)}" data-email="${encodeURIComponent(p)}" aria-label="Remove ${p}">&times;</button></li>`).join('')}</ul>`
+            : '<p class="no-participants"><em>No participants yet</em></p>';
+
         activityCard.innerHTML = `
           <h4>${name}</h4>
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          <div class="participants-section">
+            <strong>Participants:</strong>
+            ${participantsList}
+          </div>
         `;
 
         activitiesList.appendChild(activityCard);
+
+        // Handle delete participant button clicks (event delegation)
+        activityCard.addEventListener('click', async (e) => {
+          if (e.target.classList.contains('delete-participant')) {
+            const activity = decodeURIComponent(e.target.dataset.activity);
+            const email = decodeURIComponent(e.target.dataset.email);
+
+            try {
+              const resp = await fetch(`/activities/${encodeURIComponent(activity)}/participants?email=${encodeURIComponent(email)}`, { method: 'DELETE' });
+              const resJson = await resp.json();
+              if (resp.ok) {
+                // refresh activities list
+                fetchActivities();
+              } else {
+                console.error('Failed to remove participant:', resJson);
+              }
+            } catch (err) {
+              console.error('Error removing participant:', err);
+            }
+          }
+        });
 
         // Add option to select dropdown
         const option = document.createElement("option");
